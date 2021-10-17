@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+installer() {
+  local install_type=$1
+  local version=$2
+  local install_path=$3
+
+  local tmp_download_dir
+  tmp_download_dir=$(mktemp -d -t docToolchain_XXXXXXX)
+
+  if [ "version" != "${install_type}" ]; then
+    echo "The asdf-doctoolchain plugin only supports intalling official"
+    echo "binary releases as built by the docToolchain team."
+    echo "If you want to install another version from source, see:"
+    echo "https://github.com/docToolchain/docToolchain/"
+    exit 1
+  fi
+
+  # running this in a subshell
+  # we don't want to disturb current working dir
+  (
+    set -e
+
+    local zip_path="$tmp_download_dir/docToolchain-${version}.zip"
+    curl -Lo "$zip_path" "$(download_url "$version")" || fail "could not download docToolchain archive"
+    unzip -q "$zip_path" -d "$tmp_download_dir" || fail "failed to extract docToolchain archive"
+    mv "$tmp_download_dir/docToolchain-${version}"/* "$install_path"
+  ) || (rm -rf "$install_path"; exit 1)
+}
+
+download_url() {
+  local version=$1
+  echo "https://github.com/docToolchain/docToolchain/releases/download/v${version}/docToolchain-${version}.zip"
+}
+
+fail() {
+  echo "asdf-doctoolchain error: " "$@"
+  exit 1
+}
+
+installer "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
